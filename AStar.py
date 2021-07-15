@@ -1,5 +1,6 @@
 from enum import Enum
 from queue import PriorityQueue
+import math
 
 import pygame
 
@@ -32,6 +33,7 @@ class Node:
         self.y = row * self.height
         self.color = Colors.WHITE
         self.neighbours = []
+        self.neighbours_corner = []
 
     def __lt__(self, other):
         return False
@@ -54,6 +56,17 @@ class Node:
         if self.check_possible(self.row, self.col + 1, grid):  # RIGHT
             self.neighbours.append(grid.grid[self.row][self.col + 1])
 
+        if self.check_possible(self.row + 1, self.col + 1, grid):  # DOWN - RIGHT
+            self.neighbours_corner.append(grid.grid[self.row + 1][self.col + 1])
+
+        if self.check_possible(self.row + 1, self.col - 1, grid):  # DOWN - LEFT
+            self.neighbours_corner.append(grid.grid[self.row + 1][self.col - 1])
+
+        if self.check_possible(self.row - 1, self.col + 1, grid):  # UP - RIGHT
+            self.neighbours_corner.append(grid.grid[self.row - 1][self.col + 1])
+
+        if self.check_possible(self.row - 1, self.col - 1, grid):  # UP - LEFT
+            self.neighbours_corner.append(grid.grid[self.row - 1][self.col - 1])
 
     def is_start(self):
         return self.color == Colors.PURPLE
@@ -135,11 +148,21 @@ def h(point1, point2):
     col2 = point2.col
     return abs(row1 - row2) + abs(col1 - col2)
 
+
+def h2(point1, point2):
+    row1 = point1.row
+    col1 = point1.col
+    row2 = point2.row
+    col2 = point2.col
+    return math.sqrt(pow(abs(row1 - row2), 2) + pow(abs(col1 - col2), 2))
+
+
 def make_path(came_from, end, start):
     current_node = end
     while (current_node != start):
         current_node = came_from[current_node]
         current_node.make_path()
+
 
 def a_star(start, end, grid):
     count = 0
@@ -149,8 +172,8 @@ def a_star(start, end, grid):
     g_score = {node: float("Inf") for row in grid.grid for node in row}
     f_score = {node: float("Inf") for row in grid.grid for node in row}
     g_score[start] = 0
-    f_score[start] = h(start, end)
-    considered_queue.put((f_score[start],count,start))
+    f_score[start] = h2(start, end)
+    considered_queue.put((f_score[start], count, start))
 
     while not considered_queue.empty():
         for event in pygame.event.get():
@@ -169,12 +192,24 @@ def a_star(start, end, grid):
             if temp_g_score < g_score[neighbour]:
                 came_from[neighbour] = current_node
                 g_score[neighbour] = temp_g_score
-                f_score[neighbour] = g_score[neighbour] + h(neighbour,end)
+                f_score[neighbour] = g_score[neighbour] + h2(neighbour, end)
                 if neighbour not in is_in_considered_set:
                     is_in_considered_set.add(neighbour)
-                    considered_queue.put((f_score[neighbour],count,neighbour))
+                    considered_queue.put((f_score[neighbour], count, neighbour))
                     if neighbour != end:
                         neighbour.make_considered()
+
+        for neighbour_corner in current_node.neighbours_corner:
+            temp_g_score = g_score[current_node] + math.sqrt(2)
+            if temp_g_score < g_score[neighbour_corner]:
+                came_from[neighbour_corner] = current_node
+                g_score[neighbour_corner] = temp_g_score
+                f_score[neighbour_corner] = g_score[neighbour_corner] + h2(neighbour_corner, end)
+                if neighbour_corner not in is_in_considered_set:
+                    is_in_considered_set.add(neighbour_corner)
+                    considered_queue.put((f_score[neighbour_corner], count, neighbour_corner))
+                    if neighbour_corner != end:
+                        neighbour_corner.make_considered()
 
         if current_node != start:
             current_node.make_checked()
@@ -197,7 +232,7 @@ def main():
                         for j in range(TOTAL_COLUMNS):
                             grid.grid[i][j].update_neighbours(grid)
 
-                    a_star(start,end,grid)
+                    a_star(start, end, grid)
                 if event.key == pygame.K_c:
                     grid = Grid()
                     start = None
