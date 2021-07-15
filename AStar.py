@@ -120,12 +120,12 @@ class Grid:
 
 
 def get_clicked_pos(pos):
-    y, x = pos
+    x, y = pos
     height_gap = HEIGHT // TOTAL_ROWS
     width_gap = WIDTH // TOTAL_COLUMNS
     row = x // width_gap
     col = y // height_gap
-    return row, col
+    return col, row
 
 
 def h(point1, point2):
